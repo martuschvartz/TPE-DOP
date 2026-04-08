@@ -1,11 +1,11 @@
-package ar.edu.itba.domain;
+package ar.edu.itba.domain.events;
 
 import java.time.LocalDateTime;
 
-public record TrafficEvent(
+public record WeatherEvent(
         String id,
         LocalDateTime timestamp,
         String schemaVersion,
-        Double speedKmh,
-        String lane
+        Double temperatureCelsius,
+        Double humidity
 ) implements Event {}
