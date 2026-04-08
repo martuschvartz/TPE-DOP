@@ -89,7 +89,7 @@ public class EventProcessor {
 
         return new MetricSummary(
                 processedEventsAmount,
-                speedSum/trafficEventsAmount,
+                trafficEventsAmount > 0 ? speedSum/trafficEventsAmount : 0,
                 criticalEventsAmount
                 );
     }
