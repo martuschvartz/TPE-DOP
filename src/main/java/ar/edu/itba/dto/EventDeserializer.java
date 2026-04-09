@@ -1,4 +1,4 @@
-package ar.edu.itba.domain.events;
+package ar.edu.itba.dto;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -11,11 +11,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-public class EventDeserializer extends JsonDeserializer<Event> {
+public class EventDeserializer extends JsonDeserializer<EventDto> {
     private static final Logger logger = LogManager.getLogger(EventDeserializer.class);
 
     @Override
-    public Event deserialize(JsonParser jsonParser, DeserializationContext deserializationContext){
+    public EventDto deserialize(JsonParser jsonParser, DeserializationContext deserializationContext){
         try {
             JsonNode node = jsonParser.getCodec().readTree(jsonParser);
 
@@ -30,7 +30,6 @@ public class EventDeserializer extends JsonDeserializer<Event> {
             } else if (node.has("schemaVersion")) {
                 return parseV20(node);
             }
-            // TODO Maybe implement an UnknownEventDto (?
             throw new IllegalStateException("Unknown version schema");
 
         } catch (Exception e){
@@ -47,8 +46,7 @@ public class EventDeserializer extends JsonDeserializer<Event> {
 
     /* ----------------------------------------------------------------------- */
 
-    private Event parseV10(JsonNode node) {
-        String SCHEMA_VERSION_10 = "1.0";
+    private EventDto parseV10(JsonNode node) {
         String id = node.get("id").asText();
         LocalDateTime timestamp = LocalDateTime.parse(node.get("timestamp").asText(), DateTimeFormatter.ISO_ZONED_DATE_TIME);
         String type = node.get("TYPE").asText();
@@ -59,12 +57,11 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                 if (!payload.hasNonNull("SPD") || !payload.hasNonNull("LNE")) {
                     yield null;
                 }
-                yield new TrafficEvent(
+                yield new TrafficEventV10(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_10,
                         payload.get("SPD").asDouble(),
-                        payload.get("LNE").asText()
+                        payload.get("LNE").asInt()
                 );
             }
             case "WTH" -> {
@@ -72,11 +69,10 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
 
-                yield new WeatherEvent(
+                yield new WeatherEventV10(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_10,
-                        (payload.get("T").asDouble() - 32.0) * 5.0 / 9.0,
+                        payload.get("T").asDouble(),
                         payload.get("H").asDouble()
                 );
             }
@@ -86,10 +82,9 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
 
-                yield new ReportEvent(
+                yield new ReportEventV10(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_10,
                         payload.get("CAT").asText(),
                         extractMap(payload, List.of("CAT"))
                 );
@@ -98,8 +93,7 @@ public class EventDeserializer extends JsonDeserializer<Event> {
         };
     }
 
-    private Event parseV15(JsonNode node) {
-        String SCHEMA_VERSION_15 = "1.5";
+    private EventDto parseV15(JsonNode node) {
         String id = node.get("id").asText();
         LocalDateTime timestamp = LocalDateTime.parse(node.get("timestamp").asText(), DateTimeFormatter.ISO_ZONED_DATE_TIME);
         String kind = node.get("kind").asText();
@@ -110,10 +104,9 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
                 JsonNode attributes = node.get("attributes");
-                yield new TrafficEvent(
+                yield new TrafficEventV15(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_15,
                         node.get("velocity").asDouble(),
                         attributes.get("lane_id").asText()
                 );
@@ -123,10 +116,9 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
                 JsonNode attributes = node.get("attributes");
-                yield new WeatherEvent(
+                yield new WeatherEventV15(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_15,
                         node.get("temp_c").asDouble(),
                         attributes.get("HUMIDITY").asDouble()
                 );
@@ -137,10 +129,9 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
 
-                yield new ReportEvent(
+                yield new ReportEventV15(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_15,
                         node.get("category").asText(),
                         extractMap(node.get("attributes"), List.of())
                 );
@@ -149,8 +140,7 @@ public class EventDeserializer extends JsonDeserializer<Event> {
         };
     }
 
-    private Event parseV20(JsonNode node) {
-        String SCHEMA_VERSION_20 = "2.0";
+    private EventDto parseV20(JsonNode node) {
         String id = node.get("id").asText();
         LocalDateTime timestamp = LocalDateTime.parse(node.get("timestamp").asText(), DateTimeFormatter.ISO_ZONED_DATE_TIME);
         String eventType = node.get("eventType").asText();
@@ -162,12 +152,11 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
 
-                yield new TrafficEvent(
+                yield new TrafficEventV20(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_20,
                         data.get("speedKmh").asDouble(),
-                        data.get("lane").asText()
+                        data.get("lane").asInt()
                 );
             }
             case "WEATHER" -> {
@@ -175,10 +164,9 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
 
-                yield new WeatherEvent(
+                yield new WeatherEventV20(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_20,
                         data.get("temperature").asDouble(),
                         data.get("humidity").asDouble()
                 );
@@ -188,10 +176,9 @@ public class EventDeserializer extends JsonDeserializer<Event> {
                     yield null;
                 }
 
-                yield new ReportEvent(
+                yield new ReportEventV20(
                         id,
                         timestamp,
-                        SCHEMA_VERSION_20,
                         data.get("category").asText(),
                         extractMap(data, List.of("category"))
                 );

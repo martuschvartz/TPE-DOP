@@ -1,11 +1,12 @@
-package ar.edu.itba.domain.events;
+package ar.edu.itba.domain;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
-public record TrafficEvent(
+public record ReportEvent(
         String id,
         LocalDateTime timestamp,
         String schemaVersion,
-        Double speedKmh,
-        String lane
+        String category,
+        Map<String, String> details
 ) implements Event {}

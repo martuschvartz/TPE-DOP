@@ -1,10 +1,9 @@
-package ar.edu.itba.domain;
+package ar.edu.itba.processor;
 
 
-import ar.edu.itba.domain.events.Event;
-import ar.edu.itba.domain.events.ReportEvent;
-import ar.edu.itba.domain.events.TrafficEvent;
-import ar.edu.itba.domain.events.WeatherEvent;
+import ar.edu.itba.domain.*;
+import ar.edu.itba.dto.DtoMapper;
+import ar.edu.itba.dto.EventDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
@@ -12,7 +11,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class EventProcessor {
@@ -26,18 +27,22 @@ public class EventProcessor {
      * @param fileName type String, name of the json file
      * @return List<Event> on success, empty list on failure
      */
-    public List<Event> processSensorEvents(String fileName){
+    public static List<Event> processSensorEvents(String fileName){
+        List<EventDto> rawEvents;
 
         try {
-            List<Event> events = new ObjectMapper().readValue(
+            rawEvents = new ObjectMapper().readValue(
                     new File(fileName),
                     new TypeReference<>() {}
             );
-            return events;
         } catch (IOException ioException){
             logger.error("Error reading values from json file", ioException);
             return List.of();
         }
+
+        return rawEvents.stream()
+                .map(DtoMapper::toDomainEvent)
+                .toList();
     }
 
     /**
@@ -46,19 +51,23 @@ public class EventProcessor {
      * @param processedEvents type List<Event>, list of processed events
      * @return MetricSummary
      */
-    public MetricSummary obtainResults(
+    public static MetricSummary obtainResults(
             List<Event> processedEvents
     ){
         int processedEventsAmount = 0;
         double speedSum = 0.0;
         int trafficEventsAmount = 0;
         int criticalEventsAmount = 0;
+        Map<String, Integer> distributionMap = new HashMap<>();
 
         for(Event event: processedEvents){
             // Ignores invalid events
             if(event == null){
                 continue;
             }
+
+            String version = event.schemaVersion();
+            distributionMap.put(version, distributionMap.getOrDefault(version, 0) + 1);
 
             switch (event){
                 case TrafficEvent trafficEvent -> {
@@ -80,7 +89,10 @@ public class EventProcessor {
 
                 case ReportEvent reportEvent -> {
                     processedEventsAmount++;
-                    if(reportEvent.category().equalsIgnoreCase("POTHOLE")){
+                    if(
+                            reportEvent.category().equalsIgnoreCase("POTHOLE") ||
+                            (reportEvent.category().equalsIgnoreCase("TRAFFIC_LIGHT") && reportEvent.details().getOrDefault("status", "UNKNOWN").equals("BROKEN"))
+                    ){
                         criticalEventsAmount++;
                     }
                 }
@@ -90,7 +102,9 @@ public class EventProcessor {
         return new MetricSummary(
                 processedEventsAmount,
                 trafficEventsAmount > 0 ? speedSum/trafficEventsAmount : 0,
-                criticalEventsAmount
+                criticalEventsAmount,
+                distributionMap
                 );
     }
+
 }
