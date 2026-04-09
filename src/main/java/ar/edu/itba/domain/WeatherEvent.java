@@ -6,6 +6,6 @@ public record WeatherEvent(
         String id,
         LocalDateTime timestamp,
         String schemaVersion,
-        Double temperatureCelsius,
-        Double humidity
+        double temperatureCelsius,
+        double humidity
 ) implements Event {}

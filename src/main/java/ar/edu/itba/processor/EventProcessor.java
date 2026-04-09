@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 public class EventProcessor {
@@ -36,11 +37,12 @@ public class EventProcessor {
                     new TypeReference<>() {}
             );
         } catch (IOException ioException){
-            logger.error("Error reading values from json file", ioException);
+            logger.error("Error reading values from json file: ", ioException);
             return List.of();
         }
 
         return rawEvents.stream()
+                .filter(Objects::nonNull)
                 .map(DtoMapper::toDomainEvent)
                 .toList();
     }
@@ -61,10 +63,6 @@ public class EventProcessor {
         Map<String, Integer> distributionMap = new HashMap<>();
 
         for(Event event: processedEvents){
-            // Ignores invalid events
-            if(event == null){
-                continue;
-            }
 
             String version = event.schemaVersion();
             distributionMap.put(version, distributionMap.getOrDefault(version, 0) + 1);
@@ -89,10 +87,10 @@ public class EventProcessor {
 
                 case ReportEvent reportEvent -> {
                     processedEventsAmount++;
-                    if(
-                            reportEvent.category().equalsIgnoreCase("POTHOLE") ||
-                            (reportEvent.category().equalsIgnoreCase("TRAFFIC_LIGHT") && reportEvent.details().getOrDefault("status", "UNKNOWN").equals("BROKEN"))
-                    ){
+
+                    String category = reportEvent.category().toUpperCase();
+
+                    if (category.equals("POTHOLE") || reportEvent.severity() == ReportSeverity.HIGH) {
                         criticalEventsAmount++;
                     }
                 }

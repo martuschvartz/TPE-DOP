@@ -6,6 +6,6 @@ public record TrafficEvent(
         String id,
         LocalDateTime timestamp,
         String schemaVersion,
-        Double speedKmh,
+        double speedKmh,
         String lane
 ) implements Event {}

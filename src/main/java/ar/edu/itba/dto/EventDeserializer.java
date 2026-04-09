@@ -33,7 +33,7 @@ public class EventDeserializer extends JsonDeserializer<EventDto> {
             throw new IllegalStateException("Unknown version schema");
 
         } catch (Exception e){
-            logger.error("Could not parse input json :{0}", e);
+            logger.error("Could not parse input json :", e);
         }
 
         return null;

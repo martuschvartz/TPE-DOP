@@ -42,7 +42,6 @@ class DtoMapperTest {
 
     @Test
     void testMapWeatherV10_FahrenheitConversion() {
-        // 50 F should map to 10 C
         Event result = DtoMapper.toDomainEvent(new WeatherEventV10("1", now, 50.0, 80.0));
         assertEquals("1.0", result.schemaVersion());
         assertEquals(10.0, ((WeatherEvent) result).temperatureCelsius());
@@ -64,24 +63,26 @@ class DtoMapperTest {
     }
 
     @Test
-    void testMapReportV10() {
-        Event result = DtoMapper.toDomainEvent(new ReportEventV10("1", now, "pothole", Map.of("DESC", "Big")));
+    void testMapReportV10_ExtractsSeverityFromDescription() {
+        Event result = DtoMapper.toDomainEvent(new ReportEventV10("1", now, "pothole", Map.of("DESC", "Big hole in avenue")));
         assertEquals("1.0", result.schemaVersion());
         assertEquals("pothole", ((ReportEvent) result).category());
-        assertEquals("Big", ((ReportEvent) result).details().get("DESC"));
+        assertEquals(ReportSeverity.HIGH, ((ReportEvent) result).severity()); // Typed assertion!
     }
 
     @Test
-    void testMapReportV15() {
+    void testMapReportV15_ExtractsSeverityFromAttributes() {
         Event result = DtoMapper.toDomainEvent(new ReportEventV15("1", now, "Pothole", Map.of("severity", "High")));
         assertEquals("1.5", result.schemaVersion());
         assertEquals("Pothole", ((ReportEvent) result).category());
+        assertEquals(ReportSeverity.HIGH, ((ReportEvent) result).severity()); // Typed assertion!
     }
 
     @Test
-    void testMapReportV20() {
+    void testMapReportV20_ExtractsSeverityFromStatus() {
         Event result = DtoMapper.toDomainEvent(new ReportEventV20("1", now, "TRAFFIC_LIGHT", Map.of("status", "BROKEN")));
         assertEquals("2.0", result.schemaVersion());
-        assertEquals("BROKEN", ((ReportEvent) result).details().get("status"));
+        assertEquals("TRAFFIC_LIGHT", ((ReportEvent) result).category());
+        assertEquals(ReportSeverity.HIGH, ((ReportEvent) result).severity()); // Typed assertion!
     }
 }

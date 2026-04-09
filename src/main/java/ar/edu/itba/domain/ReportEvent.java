@@ -8,5 +8,5 @@ public record ReportEvent(
         LocalDateTime timestamp,
         String schemaVersion,
         String category,
-        Map<String, String> details
+        ReportSeverity severity
 ) implements Event {}
